@@ -7,9 +7,11 @@ app = typer.Typer(
     help="Evidence-grounded incident investigation.",
 )
 
+
 @app.callback()
 def main() -> None:
     """Evidence-grounded incident investigation."""
+
 
 @app.command()
 def version() -> None:

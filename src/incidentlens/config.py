@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     environment: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
-    scenario_root: Path = Path('scenarios')
+    scenario_root: Path = Path("scenarios")
     qdrant_url: str | None = None
     qdrant_path: Path = Path("var/qdrant")
     qdrant_collection: str = "incident_evidence"
@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen3:4b"
     ollama_timeout_seconds: float = Field(default=120.0, gt=0)
+
 
 @lru_cache
 def get_settings() -> Settings:

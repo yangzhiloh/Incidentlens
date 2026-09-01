@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from incidentlens import config
 from incidentlens.config import Settings
 
+
 def test_settings_have_free_local_defaults() -> None:
     settings = Settings(_env_file=None)
 
@@ -19,6 +20,7 @@ def test_settings_have_free_local_defaults() -> None:
     assert settings.ollama_base_url == "http://localhost:11434"
     assert settings.ollama_model == "qwen3:4b"
     assert settings.ollama_timeout_seconds == 120.0
+
 
 def test_settings_read_prefixed_environment_variables(monkeypatch) -> None:
     monkeypatch.setenv(
@@ -35,6 +37,7 @@ def test_settings_read_prefixed_environment_variables(monkeypatch) -> None:
     assert settings.qdrant_url == "http://localhost:6333"
     assert settings.ollama_model == "qwen3:1.7b"
 
+
 @pytest.mark.parametrize("timeout", [0.0, -1.0])
 def test_settings_reject_non_positive_ollama_timeout(timeout: float) -> None:
     with pytest.raises(ValidationError):
@@ -43,12 +46,14 @@ def test_settings_reject_non_positive_ollama_timeout(timeout: float) -> None:
             ollama_timeout_seconds=timeout,
         )
 
+
 def test_settings_reject_unsupported_environment() -> None:
     with pytest.raises(ValidationError):
         Settings(
             _env_file=None,
             environment="prodution",
         )
+
 
 def test_get_settings_reuses_first_loaded_configuration(
     monkeypatch,
