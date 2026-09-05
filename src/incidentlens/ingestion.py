@@ -1,6 +1,5 @@
 import json
 import re
-
 from json import JSONDecodeError
 from pathlib import Path
 
