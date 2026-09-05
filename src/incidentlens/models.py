@@ -1,8 +1,7 @@
-from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 JsonScalar = str | int | float | bool | None
 
@@ -41,7 +40,7 @@ class EvidenceChunk(FrozenModel):
     incident_id: str = Field(min_length=1)
     source_type: SourceType
     service: str | None = None
-    timestamp: datetime | None = None
+    timestamp: AwareDatetime | None = None
     text: str = Field(min_length=1)
     locator: SourceLocator
     metadata: dict[str, JsonScalar] = Field(default_factory=dict)
@@ -103,8 +102,8 @@ class IncidentDefinition(FrozenModel):
     incident_id: str = Field(min_length=1)
     title: str = Field(min_length=1)
     description: str = Field(min_length=1)
-    start_time: datetime
-    end_time: datetime
+    start_time: AwareDatetime
+    end_time: AwareDatetime
     services: tuple[str, ...] = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -123,6 +122,8 @@ class GroundTruth(FrozenModel):
 
 class ScenarioManifest(FrozenModel):
     schema_version: int = Field(ge=1)
+    scenario_version: str = Field(min_length=1)
+    is_synthetic: bool
     incident_definition: IncidentDefinition
     ground_truth: GroundTruth
 
