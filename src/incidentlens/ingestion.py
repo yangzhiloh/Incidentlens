@@ -2,16 +2,30 @@ import json
 import re
 from json import JSONDecodeError
 from pathlib import Path
+from typing import TypeVar
 
-from pydantic import AwareDatetime, Field, ValidationError
+import yaml
+from pydantic import AwareDatetime, BaseModel, Field, ValidationError
 
 from incidentlens.models import (
     EvidenceChunk,
     FrozenModel,
+    LoadedScenario,
+    ScenarioManifest,
+    ScenarioQuestionSet,
     SourceLocator,
     SourceType,
 )
 
+_ModelT = TypeVar("_ModelT", bound=BaseModel)
+
+_REQUIRED_FILES = (
+    "manifest.yaml",
+    "questions.yaml",
+    "logs.jsonl",
+    "changes.jsonl",
+    "runbook.md",
+)
 
 class ScenarioLoadError(ValueError):
     def __init__(
@@ -264,3 +278,62 @@ def _parse_runbook(
         )
 
     return tuple(chunks)
+
+def _load_yaml[ModelT: BaseModel](path: Path, model_type: type[ModelT]) -> ModelT:
+    try:
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise ScenarioLoadError(
+            path.parent,
+            str(exc),
+            filename=path.name,
+        ) from exc
+
+    try:
+        return model_type.model_validate(raw)
+    except ValidationError as exc:
+        raise ScenarioLoadError(
+            path.parent,
+            str(exc),
+            filename=path.name,
+        ) from exc
+
+
+def load_scenario(directory: Path) -> LoadedScenario:
+    if not directory.is_dir():
+        raise ScenarioLoadError(
+            directory,
+            "scenario directory does not exist",
+        )
+
+    for filename in _REQUIRED_FILES:
+        if not (directory / filename).is_file():
+            raise ScenarioLoadError(
+                directory,
+                "required file is missing",
+                filename=filename,
+            )
+
+    manifest = _load_yaml(
+        directory / "manifest.yaml",
+        ScenarioManifest,
+    )
+    questions = _load_yaml(
+        directory / "questions.yaml",
+        ScenarioQuestionSet,
+    )
+
+    incident_id = manifest.incident_definition.incident_id
+
+    evidence = (
+        *_parse_logs(directory / "logs.jsonl", incident_id),
+        *_parse_changes(directory / "changes.jsonl", incident_id),
+        *_parse_runbook(directory / "runbook.md", incident_id),
+    )
+
+    return LoadedScenario(
+        directory=directory,
+        manifest=manifest,
+        questions=questions,
+        evidence=evidence,
+    )

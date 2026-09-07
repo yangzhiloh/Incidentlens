@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from textwrap import dedent
 
 import pytest
 
@@ -8,9 +9,93 @@ from incidentlens.ingestion import (
     _parse_changes,
     _parse_logs,
     _parse_runbook,
+    load_scenario,
 )
 from incidentlens.models import SourceType
 
+
+def _write_minimal_scenario(directory: Path) -> None:
+    directory.mkdir()
+
+    (directory / "manifest.yaml").write_text(
+        dedent(
+            """
+            schema_version: 1
+            scenario_version: "1.0.0"
+            is_synthetic: true
+            incident_definition:
+              incident_id: payment-retry-storm
+              title: Payment retry storm
+              description: Unsafe retries amplified intermittent gateway failures.
+              start_time: 2026-08-15T09:00:00Z
+              end_time: 2026-08-15T10:00:00Z
+              services:
+                - payment-service
+                - payment-gateway
+            ground_truth:
+              root_cause: An unsafe retry configuration amplified gateway failures.
+              relevant_evidence_ids:
+                - payment-retry-storm:log:retry-attempt-001
+              distractor_evidence_ids:
+                - payment-retry-storm:change:harmless-deploy
+              expected_mitigation: Restore bounded exponential backoff.
+            """
+        ).lstrip(),
+        encoding="utf-8",
+    )
+
+    (directory / "questions.yaml").write_text(
+        dedent(
+            """
+            schema_version: 1
+            questions:
+              - question_id: root-cause
+                question: What caused the incident?
+                expected_evidence_ids:
+                  - payment-retry-storm:log:retry-attempt-001
+                should_abstain: false
+            """
+        ).lstrip(),
+        encoding="utf-8",
+    )
+
+    (directory / "logs.jsonl").write_text(
+        json.dumps(
+            {
+                "source_id": "retry-attempt-001",
+                "timestamp": "2026-08-15T09:15:00Z",
+                "service": "payment-service",
+                "severity": "WARN",
+                "environment": "production",
+                "message": "Retrying immediately after gateway 503.",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    (directory / "changes.jsonl").write_text(
+        json.dumps(
+            {
+                "source_id": "harmless-deploy",
+                "timestamp": "2026-08-15T08:00:00Z",
+                "service": "payment-service",
+                "change_type": "deployment",
+                "environment": "production",
+                "summary": "Dashboard labels updated.",
+                "details": "The deployment changed display labels only.",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    (directory / "runbook.md").write_text(
+        "## Retry policy\n"
+        "<!-- source-id: retry-policy -->\n"
+        "Use capped exponential backoff with jitter.\n",
+        encoding="utf-8",
+    )
 
 def test_parse_logs_normalizes_one_jsonl_record(tmp_path: Path) -> None:
     path = tmp_path / "logs.jsonl"
@@ -172,3 +257,32 @@ def test_parse_runbook_requires_a_source_id_marker(
         match="valid source-id marker",
     ):
         _parse_runbook(path, "payment-retry-storm")
+
+def test_load_scenario_returns_validated_components(
+    tmp_path: Path,
+) -> None:
+    directory = tmp_path / "payment-retry-storm"
+    _write_minimal_scenario(directory)
+
+    scenario = load_scenario(directory)
+
+    assert scenario.directory == directory
+    assert scenario.manifest.scenario_version == "1.0.0"
+    assert scenario.manifest.is_synthetic is True
+    assert scenario.questions.questions[0].question_id == "root-cause"
+    assert len(scenario.evidence) == 3
+    assert {chunk.source_type for chunk in scenario.evidence} == {
+        SourceType.LOG,
+        SourceType.CHANGE,
+        SourceType.RUNBOOK,
+    }
+
+def test_load_scenario_reports_a_missing_required_file(tmp_path: Path) -> None:
+    directory = tmp_path / "payment-retry-storm"
+    directory.mkdir()
+
+    with pytest.raises(
+        ScenarioLoadError,
+        match="manifest.yaml: required file is missing",
+    ):
+        load_scenario(directory)
