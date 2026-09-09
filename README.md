@@ -20,7 +20,7 @@ The planned standout feature is an Incident Replay Lab that runs investigations 
 
 ## Current Status
 
-Current phase: **Milestone 1, Step 1, project initialization**
+Current phase: **Milestone 1, scenario ingestion in progress**
 
 Currently implemented:
 
@@ -28,19 +28,27 @@ Currently implemented:
 - Dependency and lockfile configuration
 - Development tool configuration
 - Environment variable template
-- Placeholder command-line entry point
+- Typed local configuration and command-line entry point
+- Immutable incident, evidence, citation, query, answer, and evaluation models
+- Citation and abstention validation contracts
+- Versioned scenario manifests and evaluation question sets
+- Source-aware parsing for logs, deployment changes, and runbook sections
+- Deterministic unit tests for the implemented foundation
 
 Not implemented yet:
 
-- Incident scenario ingestion
+- Cross-file scenario validation
+- The first committed payment-retry-storm scenario package
 - Qdrant indexing
-- Evidence retrieval
+- Dense evidence retrieval with mandatory incident filtering
 - Ollama generation
 - Citation validation
-- Agentic investigation
+- Incident Replay Lab and retrieval evaluation
+- Bounded LangGraph investigation
 - API or web interface
 - Docker deployment
-- AWS infrastructure
+- Live OpenTelemetry Demo integration
+- Optional AWS infrastructure
 
 The project is being built progressively so that each milestone produces a working and measurable result.
 
@@ -51,10 +59,10 @@ The project is being built progressively so that each milestone produces a worki
 | 1 | Evidence search baseline | Investigate one prerecorded incident using dense retrieval and cited generation |
 | 2 | Modern RAG | Add hybrid retrieval, metadata filtering, reranking, and evaluation |
 | 3 | Agentic investigation | Build a bounded LangGraph workflow with hypotheses, retries, and abstention |
-| 4 | Resume-ready product | Add FastAPI, React, Docker, CI/CD, and the Incident Replay Lab |
-| 5 | Cloud extension | Integrate live OpenTelemetry data and an on-demand AWS deployment |
+| 4 | Resume-ready product | Add FastAPI, React, Docker, CI/CD, the Incident Replay Lab, and one live OpenTelemetry incident |
+| 5 | Optional cloud extension | Add an on-demand AWS deployment after the local portfolio version is complete |
 
-Milestone 4 is the primary portfolio target. Milestone 5 is an optional advanced extension.
+Milestone 4 is the portfolio finish line. Milestone 5 is optional and is not required for the project to be resume ready.
 
 ## Technology Stack
 
@@ -74,7 +82,7 @@ Current foundation:
 - Mypy
 - Pytest
 
-Planned additions include LangGraph, FastAPI, React, Docker, GitHub Actions, OpenTelemetry, and AWS.
+Planned core additions include LangGraph, FastAPI, React, Docker, GitHub Actions, and OpenTelemetry. AWS and Terraform remain optional extensions.
 
 ## Prerequisites
 
