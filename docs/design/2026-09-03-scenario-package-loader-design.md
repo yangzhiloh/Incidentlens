@@ -1,5 +1,11 @@
 # Scenario Package and Loader Design
 
+**Status:** Implementation in progress
+
+Implemented so far: versioned models, source-aware log and change parsing, runbook-section parsing, required-file checks, YAML validation, and `LoadedScenario` assembly.
+
+Outstanding before completion: cross-file relationship validation, the committed payment-retry-storm package, tests for invalid relationships, and a test that loads the repository scenario.
+
 ## Objective
 
 Create one complete synthetic payment-retry-storm scenario and a deterministic loader that validates the package and returns a `LoadedScenario`.

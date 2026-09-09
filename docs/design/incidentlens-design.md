@@ -1,8 +1,10 @@
 # IncidentLens Design Specification
 
-**Status:** Approved concept, pending review of this written specification
+**Status:** Approved, implementation in progress
 
 **Date:** 2026-08-28
+
+**Last updated:** 2026-09-09
 
 **Target roles:** AI Engineer, Data Scientist, Forward Deployed Engineer
 
@@ -14,7 +16,7 @@ IncidentLens is an evidence-grounded incident investigation assistant for cloud 
 
 The standout component is the Incident Replay Lab. Each replay scenario contains hidden ground truth, relevant evidence, distractors, and expected findings. The lab runs the same incident through different retrieval and agent configurations, measures their performance, and exposes both successful and failed reasoning. This changes the project from a generic chat interface into a reproducible AI engineering experiment.
 
-Development is split into five progressive milestones. Milestones 1 through 4 form the complete resume project. Milestone 5 adds live observability and an on-demand AWS deployment after the local system is stable.
+Development is split into five progressive milestones. Milestones 1 through 4 form the complete resume project and include one evaluated live incident from the OpenTelemetry Demo. Milestone 5 is an optional on-demand AWS deployment after the local system is stable.
 
 ## 2. Goals
 
@@ -26,12 +28,13 @@ Development is split into five progressive milestones. Milestones 1 through 4 fo
 6. Deliver a polished FastAPI and React application that runs through Docker Compose.
 7. Include automated testing, evaluation regression checks, container builds, and CI/CD.
 8. Keep the primary development and demonstration path local and free of paid API requirements.
-9. Demonstrate optional AWS and live observability integration without making them prerequisites.
+9. Demonstrate one live OpenTelemetry incident through the same evidence and investigation interfaces used by deterministic replay scenarios.
+10. Keep AWS deployment optional and separate from the portfolio completion criteria.
 
 ## 3. Non-goals
 
 1. IncidentLens will not execute remediation commands or mutate cloud infrastructure.
-2. The first release will not use a multi-agent architecture.
+2. The first release will not use an autonomous agent swarm. It will use one bounded LangGraph with role-separated investigation, evidence-critique, and report-writing nodes.
 3. The first release will not support arbitrary enterprise data sources.
 4. The first release will not require Kubernetes, Celery, Redis, Neo4j, or multiple vector databases.
 5. The project will not claim production reliability or statistically generalizable results from a small synthetic scenario set.
@@ -43,7 +46,7 @@ Development is split into five progressive milestones. Milestones 1 through 4 fo
 1. The developer is learning RAG and agent workflows for the first time.
 2. Development occurs primarily on a Windows machine with Docker Desktop.
 3. The local machine can run a small instruction model through Ollama. The exact model will be selected after checking the available memory and accelerator support.
-4. Synthetic and prerecorded incident evidence is acceptable for the main portfolio version.
+4. Synthetic and prerecorded incident evidence is acceptable for deterministic evaluation, but the portfolio version also includes one live OpenTelemetry Demo incident.
 5. A public GitHub repository will be used to expose source code, documentation, CI results, and the project page.
 6. An AWS account may be used later for short demonstrations. AWS cost and free tier eligibility cannot be assumed.
 
@@ -87,7 +90,7 @@ The main local path consists of:
 
 1. A React and TypeScript web application.
 2. A FastAPI backend.
-3. A LangGraph investigation workflow.
+3. A bounded LangGraph with role-separated investigator, evidence critic, and report writer nodes.
 4. Read-only evidence retrieval tools.
 5. Qdrant for dense and sparse vector search.
 6. FastEmbed for local embedding and reranking models.
@@ -100,29 +103,27 @@ The web application calls FastAPI. FastAPI starts or reads an investigation. The
 
 ### 6.2 Agent workflow
 
-The bounded workflow is:
+The bounded workflow is implemented as role-separated nodes inside one state graph:
 
-1. Scope the incident.
-2. Plan evidence queries.
-3. Retrieve evidence.
-4. Create two or three hypotheses.
-5. Attach supporting and contradicting evidence.
-6. Grade evidence sufficiency and citation validity.
-7. If evidence is inadequate, revise the queries and retry once.
-8. Write a cited report or abstain.
+1. The investigator scopes the incident and plans evidence queries.
+2. Deterministic retrieval tools return evidence.
+3. The investigator creates two or three hypotheses and attaches supporting and contradicting evidence.
+4. The evidence critic grades evidence sufficiency, citation validity, and unresolved contradictions.
+5. If evidence is inadequate, the graph revises the queries and retries once.
+6. The report writer produces a cited report or explicitly abstains.
 
 The workflow has configurable tool and token budgets. The initial design allows one retrieval retry and a small maximum number of tool calls. Exact limits will be tuned during evaluation and stored in configuration.
 
-### 6.3 Live observability extension
+### 6.3 Live observability portfolio scenario
 
-Milestone 5 adds the OpenTelemetry Demo and Grafana LGTM stack. Provider adapters query:
+Milestone 4 adds one evaluated incident from the OpenTelemetry Demo and Grafana LGTM stack. Provider adapters query:
 
 1. Loki for logs.
 2. Tempo for traces.
 3. Prometheus for metrics.
 4. Deployment and configuration event sources.
 
-The adapters convert live responses into the same `EvidenceChunk` model used by prerecorded scenarios. This preserves the evaluation path and prevents the agent workflow from depending directly on a specific observability vendor.
+The adapters convert live responses into the same `EvidenceChunk` model used by prerecorded scenarios. Fixture mode remains the deterministic regression path. This preserves the evaluation architecture and prevents the agent workflow from depending directly on a specific observability vendor.
 
 ### 6.4 AWS extension
 
@@ -143,7 +144,7 @@ The AWS environment is created on demand and removed after demonstrations. The p
 
 ## 7. Data Sources and Interfaces
 
-### 7.1 Required data sources for the core project
+### 7.1 Required replay data for the core project
 
 Each scenario package contains:
 
@@ -153,15 +154,16 @@ Each scenario package contains:
 4. `changes.jsonl` with deployment and configuration events.
 5. `questions.yaml` with evaluation queries and expected evidence.
 
-At least three scenarios will be created:
+At least four scenarios will be created:
 
 1. Payment retry storm following a configuration deployment.
 2. Database connection pool exhaustion.
 3. Inventory service latency following a dependency change.
+4. One additional incident chosen to test a distinct failure pattern and abstention behavior.
 
 These are controlled scenarios created for the project. They will be labeled synthetic and will not be represented as real company incidents.
 
-### 7.2 Live APIs added in Milestone 5
+### 7.2 Live APIs used in Milestone 4
 
 1. OTLP for receiving or replaying telemetry.
 2. Loki `query_range` for time-bounded log retrieval.
@@ -169,11 +171,11 @@ These are controlled scenarios created for the project. They will be labeled syn
 4. Prometheus instant and range query endpoints.
 5. Qdrant query endpoints for vector and filtered search.
 6. Ollama generation and embedding endpoints when configured.
-7. AWS S3, DynamoDB, Bedrock, CloudWatch, ECR, Lambda, API Gateway, and STS APIs when AWS mode is configured.
+7. Optional AWS APIs only when the separate Milestone 5 deployment is configured.
 
 ### 7.3 Internal domain models
 
-`IncidentManifest` contains the incident identifier, title, time range, affected services, ground truth root cause, relevant evidence IDs, distractor IDs, expected mitigation, and evaluation cases.
+`ScenarioManifest` contains the incident identifier, title, time range, affected services, ground truth root cause, relevant evidence IDs, distractor IDs, and expected mitigation. Evaluation cases remain in the versioned question set.
 
 `EvidenceChunk` contains a stable evidence ID, incident ID, source type, service, timestamp or time range, original text, searchable text, structured metadata, and a resolvable source locator.
 
@@ -211,7 +213,7 @@ Chunking is source aware:
 1. A log event remains an atomic unit unless a small adjacent window is necessary for context.
 2. Deployment events remain atomic and preserve timestamps and changed fields.
 3. Runbooks are split by heading and paragraph boundaries.
-4. Trace spans remain atomic but may include summarized parent and child context in Milestone 5.
+4. Trace spans remain atomic but may include summarized parent and child context in Milestone 4.
 5. Metric evidence stores the query, time range, values, and derived observation rather than embedding raw high-volume samples.
 
 Every chunk keeps its original source locator. The generated answer is never the source of a citation.
@@ -248,11 +250,21 @@ Incident isolation is mandatory. Evidence from another scenario must not appear 
 5. Retrieved documents are treated as untrusted data and cannot redefine system instructions or tool permissions.
 6. Missing evidence produces an abstention or a request for a specific next check.
 
+### 8.5 Hugging Face task mapping
+
+The project demonstrates Hugging Face tasks through measurable system components rather than disconnected model demos:
+
+1. Sentence Similarity powers dense evidence retrieval.
+2. Text Ranking powers cross-encoder reranking after hybrid retrieval.
+3. Text Generation produces structured hypotheses and incident reports.
+4. Summarization condenses timelines and retrieved evidence when context limits require it.
+5. Text Classification is optional for evidence categorization only if evaluation shows that deterministic metadata is insufficient.
+
 ## 9. Agent Design
 
-### 9.1 Why one graph rather than multiple agents
+### 9.1 Why one bounded graph rather than an agent swarm
 
-A single state graph is easier to inspect, test, reproduce, and constrain. It demonstrates agentic orchestration without adding coordination complexity that does not improve the initial use case.
+A single state graph is easier to inspect, test, reproduce, and constrain. Role-separated investigator, evidence-critic, and report-writer nodes demonstrate orchestration and shared state without adding independent agent runtimes or uncontrolled delegation.
 
 ### 9.2 Read-only tools
 
@@ -264,7 +276,7 @@ The initial agent tools are:
 4. `get_evidence_by_id`
 5. `expand_time_window`
 
-Milestone 5 adds trace and metric tools. Tool implementations remain normal Python functions with independent unit and integration tests.
+Milestone 4 adds trace and metric tools for one live OpenTelemetry scenario. Tool implementations remain normal Python functions with independent unit and integration tests.
 
 ### 9.3 Failure and stopping behavior
 
@@ -293,18 +305,22 @@ The Replay Lab is both an evaluation harness and a product feature. It provides 
 8. Agent policy
 9. Generation model
 10. Randomness settings when supported
+11. Exact model revisions where the provider exposes them
+12. Prompt version
+13. Tool and token budgets
+14. Git commit
 
 ### 10.3 Metrics
 
-Retrieval metrics include:
+The primary retrieval metric is Recall@5. Retrieval metrics include:
 
-1. Recall at K
+1. Recall@5
 2. Mean Reciprocal Rank
-3. nDCG
+3. nDCG@5
 4. Relevant evidence coverage
 5. Cross-incident leakage count
 
-Answer and workflow metrics include:
+The primary answer-quality metrics are root-cause correctness, citation precision, unsupported-claim count, and correct abstention rate. Answer and workflow metrics include:
 
 1. Root cause correctness against scenario ground truth
 2. Citation validity
@@ -316,7 +332,7 @@ Answer and workflow metrics include:
 8. Generation latency
 9. Total investigation latency
 
-The primary metric will be declared before comparing configurations. Results from a small synthetic dataset will be reported as project evidence, not as a general benchmark.
+The frozen evaluation set contains approximately 30 to 40 questions across at least four scenarios. Reports include raw counts alongside percentages. Results are project evidence, not a statistically generalizable benchmark.
 
 ### 10.4 Required comparisons
 
@@ -326,69 +342,40 @@ The primary metric will be declared before comparing configurations. Results fro
 4. Single pass RAG against the bounded agent workflow.
 5. Agent workflow with and without the retry step.
 
-All raw results are stored in machine-readable JSON. A Markdown report summarizes the configuration, results, limitations, and notable failures.
+All raw results are stored in machine-readable JSON. A Markdown report summarizes the exact configuration, raw counts, metrics, limitations, and notable failures. Pull-request regression thresholds are established only after the dense baseline is frozen.
 
 ## 11. Technology Stack
 
-### 11.1 Python backend
+### 11.1 Core stack
 
-1. Python 3.12
-2. `uv` for environment and dependency management
-3. FastAPI and Uvicorn
-4. Pydantic and Pydantic Settings
-5. HTTPX
-6. Structlog
-7. Tenacity for narrowly scoped retries
-8. ORJSON where API serialization performance matters
-9. Mangum for the optional Lambda deployment
-10. Typer for the command line interface
+The core stack is introduced progressively and is sufficient to complete Milestone 4:
 
-### 11.2 RAG and agent workflow
+1. Python 3.12 and `uv`
+2. Pydantic, Pydantic Settings, HTTPX, Structlog, PyYAML, and Typer
+3. Qdrant Client and FastEmbed
+4. Ollama behind a configurable model-provider interface
+5. LangGraph and only the LangChain Core interfaces needed by the graph
+6. NumPy, scikit-learn, and Ranx for evaluation
+7. FastAPI and Uvicorn
+8. React, TypeScript, Vite, TanStack Query, Recharts, Vitest, and Playwright
+9. Docker, Docker Compose, and GitHub Actions
+10. Pytest, Ruff, Mypy, and focused dependency and container security checks
+11. OpenTelemetry instrumentation with the Grafana LGTM stack
 
-1. LangGraph
-2. LangChain Core for message and runnable interfaces
-3. LangChain Ollama integration when it becomes more useful than direct HTTP calls
-4. LangChain AWS integration for optional Bedrock support
-5. Qdrant Client
-6. FastEmbed
-7. NetworkX for optional evidence relationship analysis
-8. NumPy and scikit-learn for evaluation and analysis
-9. Ranx for information retrieval metrics
-10. SciPy for statistical analysis where the sample size supports it
-11. Ragas only as an optional later comparison, not as the source of ground truth
+### 11.2 Optional dependencies
 
-### 11.3 Data processing
+Optional tools are added only when a completed milestone and measured need justify them:
 
-1. PyYAML
-2. Polars
-3. PyArrow when columnar evaluation artifacts become useful
-4. Docling only in the advanced phase if PDF runbooks are added
-
-### 11.4 Frontend
-
-1. React
-2. TypeScript
-3. Vite
-4. TanStack Query
-5. React Flow for investigation and evidence relationships
-6. Recharts for evaluation results
-7. Vitest
-8. Playwright
-
-### 11.5 Infrastructure and quality
-
-1. Docker and Docker Compose
-2. Terraform
-3. GitHub Actions
-4. Pytest, pytest-asyncio, pytest-cov, and respx
-5. Ruff
-6. Mypy
-7. Pre-commit
-8. Pip Audit
-9. Bandit
-10. Trivy
-11. Hadolint
-12. OpenTelemetry Python instrumentation
+1. Tenacity for narrowly scoped external-call retries
+2. ORJSON after serialization profiling
+3. NetworkX for evidence-relationship analysis
+4. Polars and PyArrow for larger evaluation artifacts
+5. SciPy when the evaluation sample supports statistical analysis
+6. Ragas as a comparison, never as the source of ground truth
+7. Docling if PDF runbooks become part of an evaluated scenario
+8. React Flow if the investigation graph materially improves the user experience
+9. Terraform, Mangum, LangChain AWS, and Bedrock for the optional AWS milestone
+10. Additional security scanners when the deployment artifacts they inspect exist
 
 ## 12. Progressive Repository Structure
 
@@ -442,6 +429,8 @@ Only the folders required by the current milestone are created.
 | `lab/` | Replay orchestration and reporting |
 | `containers/` | API and web Dockerfiles |
 | `compose.yaml` | Local stack |
+| `compose.observability.yaml` | OpenTelemetry Demo and Grafana LGTM |
+| `src/incidentlens/telemetry/` | Minimum Loki, Tempo, Prometheus, and correlation adapters for one evaluated fault |
 | `.github/workflows/` | CI, evaluation, container, and project page workflows |
 | `docs/` | Architecture, evaluation, operation, and demonstration documentation |
 
@@ -449,10 +438,8 @@ Only the folders required by the current milestone are created.
 
 | Path | Responsibility |
 | --- | --- |
-| `src/incidentlens/telemetry/` | Loki, Tempo, Prometheus, and correlation adapters |
 | `src/incidentlens/providers/` | Local and AWS provider implementations |
 | `infra/terraform/` | AWS infrastructure modules and environments |
-| `compose.observability.yaml` | OpenTelemetry Demo and Grafana LGTM |
 | `.github/workflows/aws-deploy.yml` | Manual AWS deployment |
 | `.github/workflows/aws-destroy.yml` | Explicit AWS teardown |
 
@@ -465,22 +452,23 @@ Only the folders required by the current milestone are created.
 Steps:
 
 1. Initialize the Python project and quality tools.
-2. Start Qdrant as one local container with a documented command.
-3. Create the payment retry storm scenario and ground truth manifest.
-4. Define typed incident, evidence, citation, query, and answer models.
-5. Normalize logs, runbooks, and changes into evidence chunks.
-6. Create stable evidence IDs and source locators.
-7. Embed and index the evidence in Qdrant.
-8. Implement dense retrieval with mandatory incident filtering.
-9. Generate a structured cited answer through Ollama.
-10. Validate every citation before returning it.
-11. Expose indexing, listing, evidence inspection, and investigation through a CLI.
-12. Add unit tests with a fake model and separately marked integration tests.
+2. Define typed incident, evidence, citation, query, answer, and evaluation models.
+3. Define the versioned scenario package and source-aware parsers.
+4. Normalize logs, runbooks, and changes into evidence chunks with stable IDs and source locators.
+5. Validate all cross-file evidence and ground-truth relationships.
+6. Commit the payment retry storm scenario and its evaluation questions.
+7. Start Qdrant as one local container with a documented command.
+8. Embed and index the evidence in Qdrant.
+9. Implement dense retrieval with mandatory incident filtering.
+10. Generate a structured cited answer through Ollama.
+11. Validate every citation before returning it.
+12. Expose indexing, listing, evidence inspection, and investigation through a CLI.
+13. Add unit tests with a fake model and separately marked integration tests.
 
 Completion gate:
 
 1. A user can index and investigate the scenario from the CLI.
-2. At least four of five initial questions retrieve their required evidence in the top five.
+2. At least four of five initial questions retrieve their required evidence in the top five, measured as Recall@5.
 3. Every citation resolves to an original source.
 4. The system abstains when evidence is missing.
 5. Unit tests do not require an LLM.
@@ -491,7 +479,7 @@ Completion gate:
 
 Steps:
 
-1. Add two more incidents with distractors and multiple question variants.
+1. Expand to at least four incidents and approximately 30 to 40 total evaluation questions, including distractors and abstention cases.
 2. Freeze the dense baseline and record its configuration.
 3. Add sparse retrieval for exact operational terms.
 4. Fuse dense and sparse rankings using Reciprocal Rank Fusion.
@@ -505,7 +493,7 @@ Steps:
 Completion gate:
 
 1. All configurations are reproducible from versioned files.
-2. The selected retriever outperforms the frozen baseline on the declared primary metric.
+2. The selected retriever outperforms the frozen dense baseline on Recall@5 without reducing citation precision or incident isolation.
 3. Cross-incident evidence leakage is zero.
 4. Evaluation reports are regenerated with one command.
 5. Negative or inconclusive experiments are documented honestly.
@@ -535,7 +523,7 @@ Completion gate:
 4. Agent and baseline results use the same scenario set.
 5. Added complexity is justified with measured quality and latency results.
 
-## 13.4 Milestone 4: Resume Ready Product
+## 13.4 Milestone 4: Resume Ready Product and Live Telemetry
 
 **Learning objective:** Turn the AI system into a reproducible, observable, and usable software product.
 
@@ -549,8 +537,12 @@ Steps:
 6. Add health checks and startup dependency handling.
 7. Add backend, frontend, evaluation, and container CI checks.
 8. Add a deterministic fake model mode for CI.
-9. Publish the static portfolio page.
-10. Record a short demonstration and document the architecture, experiments, limitations, and setup.
+9. Run the OpenTelemetry Demo and Grafana LGTM locally.
+10. Implement the minimum Loki, Tempo, and Prometheus adapters required for one known fault.
+11. Convert live responses into the existing evidence model and evaluate the known fault through the same investigation workflow.
+12. Preserve fixture mode as the deterministic regression path.
+13. Publish the static portfolio page.
+14. Record a short demonstration and document the architecture, experiments, limitations, and setup.
 
 Completion gate:
 
@@ -560,21 +552,13 @@ Completion gate:
 4. Replay Lab reproduces the published comparisons.
 5. CI passes without paid services or model credentials.
 6. The README reports only measured results.
+7. One known OpenTelemetry Demo fault is investigated through the same workflow as replay scenarios.
 
-## 13.5 Milestone 5: Live Observability and AWS
+## 13.5 Milestone 5: Optional AWS Deployment
 
-**Learning objective:** Integrate a proven AI core with realistic telemetry and production-style cloud infrastructure.
+**Learning objective:** Deploy the proven local portfolio system through reproducible, cost-controlled cloud infrastructure.
 
-Steps for live telemetry:
-
-1. Run the OpenTelemetry Demo and Grafana LGTM locally.
-2. Implement Loki, Tempo, and Prometheus adapters.
-3. Convert live results into the existing evidence model.
-4. Correlate logs, traces, metrics, and changes by time, service, and trace ID.
-5. Replay a known fault and evaluate the investigation.
-6. Preserve fixture mode for fast deterministic testing.
-
-Steps for AWS:
+Steps:
 
 1. Implement provider interfaces for model, state, evidence storage, and vector search.
 2. Package FastAPI as a Lambda container.
@@ -587,11 +571,10 @@ Steps for AWS:
 
 Completion gate:
 
-1. Fixture and live telemetry modes use the same investigation workflow.
-2. Ollama and Bedrock use the same model interface.
-3. AWS infrastructure can be created and removed reproducibly.
-4. CI uses short-lived credentials.
-5. The public portfolio remains useful while AWS is offline.
+1. Ollama and Bedrock use the same model interface.
+2. AWS infrastructure can be created and removed reproducibly.
+3. CI uses short-lived credentials.
+4. The public portfolio remains useful while AWS is offline.
 
 ## 14. Testing Strategy
 
@@ -609,7 +592,7 @@ A small frozen subset runs in pull requests. It checks that retrieval recall, ci
 
 ### 14.4 End-to-end tests
 
-Playwright verifies the primary flow from scenario selection to report and citation inspection. AWS deployment smoke tests verify health, one investigation, and artifact access.
+Playwright verifies the primary flow from scenario selection to report and citation inspection. The OpenTelemetry end-to-end test injects one known fault and verifies evidence collection through report generation. Optional AWS deployment smoke tests verify health, one investigation, and artifact access.
 
 ## 15. CI/CD Design
 
@@ -647,6 +630,7 @@ AWS deployment is manual. GitHub Actions obtains short-lived credentials through
 8. External calls have bounded timeouts and narrowly scoped retries.
 9. Health and readiness checks distinguish process health from dependency readiness.
 10. Generated remediation remains advisory and requires human review.
+11. Live telemetry is filtered for secrets and sensitive values before persistence, embedding, or model use.
 
 ## 17. Cost Strategy
 
@@ -658,8 +642,8 @@ The optional AWS deployment is designed for short demonstrations rather than con
 
 | Risk | Mitigation |
 | --- | --- |
-| Scope overwhelms a beginner | Treat Milestone 4 as the finish line and build only one milestone at a time |
-| Synthetic data appears unrealistic | Use operationally plausible evidence, label it synthetic, and later validate with OpenTelemetry Demo scenarios |
+| Scope overwhelms a beginner | Treat Milestone 4 as the finish line, build only one milestone at a time, and keep AWS optional |
+| Synthetic data appears unrealistic | Use operationally plausible evidence, label it synthetic, and validate one known fault with the OpenTelemetry Demo in Milestone 4 |
 | Retrieval gains are overstated | Freeze the baseline, declare the primary metric, publish raw results, and document dataset size |
 | LLM output is nondeterministic | Use structured output, deterministic validation, fake models in CI, and versioned prompts |
 | Agent loops become expensive or unreliable | Use one graph, read-only tools, one retry, and strict budgets |
@@ -671,9 +655,10 @@ The optional AWS deployment is designed for short demonstrations rather than con
 
 Replace every bracketed field with a measured result from the completed project. Do not place estimated or invented numbers on the resume.
 
-1. **Built** an evidence-grounded incident investigation assistant using hybrid Qdrant retrieval, local reranking, Ollama, and LangGraph to analyze logs, runbooks, and deployment events, **achieving [root cause accuracy]% accuracy and [Recall@K] evidence recall across [N] reproducible incident cases**.
-2. **Designed** an Incident Replay Lab that benchmarked dense, hybrid, reranked, and agentic RAG configurations against hidden ground truth, **improving [primary metric] by [X]% over the dense baseline while reducing unsupported citations from [A] to [B]**.
-3. **Delivered** the application end to end with FastAPI, React, Docker Compose, GitHub Actions, Terraform, and an on-demand AWS deployment, **reducing setup to [one command or measured time], maintaining [test count or coverage]% automated coverage, and keeping demonstrated cloud cost below [measured amount]**.
+1. **Built** an evidence-grounded incident investigation assistant using hybrid Qdrant retrieval, local reranking, Ollama, and LangGraph to analyze logs, runbooks, and deployment events, **achieving [root cause accuracy]% accuracy and [Recall@5] evidence recall across [N] reproducible incident cases**.
+2. **Designed** an Incident Replay Lab that benchmarked dense, hybrid, reranked, and agentic RAG configurations against hidden ground truth, **improving Recall@5 by [X]% over the dense baseline while reducing unsupported citations from [A] to [B]**.
+3. **Delivered** the application end to end with FastAPI, React, Docker Compose, GitHub Actions, and OpenTelemetry, **reproducing one live fault through Loki, Tempo, and Prometheus while maintaining [test count or coverage]% automated coverage**.
+4. **Optional:** Deployed the validated application through Terraform and an on-demand AWS environment, **completing smoke tests in [measured time] and keeping demonstrated cloud cost below [measured amount]**.
 
 These bullets follow Action, Context, Result structure. The final wording will be adjusted after real evaluation and deployment measurements exist.
 
@@ -681,7 +666,7 @@ These bullets follow Action, Context, Result structure. The final wording will b
 
 The core portfolio project is complete at Milestone 4 when:
 
-1. Three or more versioned replay scenarios contain ground truth and distractors.
+1. At least four versioned replay scenarios contain ground truth and distractors, with approximately 30 to 40 evaluation questions in total.
 2. Dense, hybrid, and reranked retrieval are compared reproducibly.
 3. The bounded agent creates competing hypotheses and can abstain.
 4. Every important claim has a valid, inspectable citation.
@@ -691,8 +676,9 @@ The core portfolio project is complete at Milestone 4 when:
 8. The public project page explains the problem, architecture, results, failures, and limitations.
 9. Resume claims use measurements generated by the repository.
 10. No AWS account or paid API is required to evaluate the core project.
+11. One known OpenTelemetry Demo fault is investigated and evaluated through the same workflow used by replay scenarios.
 
-Milestone 5 is complete only when live telemetry and AWS meet their separate completion gates. It is not required for the project to be resume ready.
+Milestone 5 is complete only when the optional AWS deployment meets its separate completion gate. It is not required for the project to be resume ready.
 
 ## 21. Reference Technologies
 
