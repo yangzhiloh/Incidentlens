@@ -97,6 +97,7 @@ def _write_minimal_scenario(directory: Path) -> None:
         encoding="utf-8",
     )
 
+
 def test_parse_logs_normalizes_one_jsonl_record(tmp_path: Path) -> None:
     path = tmp_path / "logs.jsonl"
     path.write_text(
@@ -128,6 +129,7 @@ def test_parse_logs_normalizes_one_jsonl_record(tmp_path: Path) -> None:
     assert chunks[0].locator.path == "logs.jsonl"
     assert chunks[0].locator.line_start == 1
     assert chunks[0].locator.line_end == 1
+
 
 def test_parse_logs_reports_filename_and_line_for_invalid_json(
     tmp_path: Path,
@@ -173,6 +175,7 @@ def test_parse_logs_rejects_timestamp_without_timezone(
     with pytest.raises(ScenarioLoadError, match="logs.jsonl: line 1"):
         _parse_logs(path, "payment-retry-storm")
 
+
 def test_parse_changes_normalizes_one_jsonl_record(tmp_path: Path) -> None:
     path = tmp_path / "changes.jsonl"
     path.write_text(
@@ -208,6 +211,7 @@ def test_parse_changes_normalizes_one_jsonl_record(tmp_path: Path) -> None:
     }
     assert chunks[0].locator.path == "changes.jsonl"
 
+
 def test_parse_runbook_creates_one_chunk_per_marked_section(
     tmp_path: Path,
 ) -> None:
@@ -242,6 +246,7 @@ def test_parse_runbook_creates_one_chunk_per_marked_section(
     assert chunks[1].locator.line_start == 7
     assert chunks[1].locator.line_end == 9
 
+
 def test_parse_runbook_requires_a_source_id_marker(
     tmp_path: Path,
 ) -> None:
@@ -257,6 +262,7 @@ def test_parse_runbook_requires_a_source_id_marker(
         match="valid source-id marker",
     ):
         _parse_runbook(path, "payment-retry-storm")
+
 
 def test_load_scenario_returns_validated_components(
     tmp_path: Path,
@@ -277,6 +283,7 @@ def test_load_scenario_returns_validated_components(
         SourceType.RUNBOOK,
     }
 
+
 def test_load_scenario_reports_a_missing_required_file(tmp_path: Path) -> None:
     directory = tmp_path / "payment-retry-storm"
     directory.mkdir()
@@ -284,5 +291,51 @@ def test_load_scenario_reports_a_missing_required_file(tmp_path: Path) -> None:
     with pytest.raises(
         ScenarioLoadError,
         match="manifest.yaml: required file is missing",
+    ):
+        load_scenario(directory)
+
+
+def test_load_scenario_rejects_duplicate_evidence_ids(
+    tmp_path: Path,
+) -> None:
+    directory = tmp_path / "payment-retry-storm"
+    _write_minimal_scenario(directory)
+
+    duplicate_log = {
+        "source_id": "retry-attempt-001",
+        "timestamp": "2026-08-15T09:16:00Z",
+        "service": "payment-service",
+        "severity": "WARN",
+        "environment": "production",
+        "message": "Duplicate retry evidence.",
+    }
+
+    with (directory / "logs.jsonl").open("a", encoding="utf-8") as file:
+        file.write(json.dumps(duplicate_log) + "\n")
+
+    with pytest.raises(
+        ScenarioLoadError,
+        match="duplicate evidence ID",
+    ):
+        load_scenario(directory)
+
+
+def test_load_scenario_rejects_missing_ground_truth_evidence(
+    tmp_path: Path,
+) -> None:
+    directory = tmp_path / "payment-retry-storm"
+    _write_minimal_scenario(directory)
+
+    manifest_path = directory / "manifest.yaml"
+    manifest = manifest_path.read_text(encoding="utf-8")
+    updated_manifest = manifest.replace(
+        "payment-retry-storm:log:retry-attempt-001",
+        "payment-retry-storm:log:missing-evidence",
+    )
+    manifest_path.write_text(updated_manifest, encoding="utf-8")
+
+    with pytest.raises(
+        ScenarioLoadError,
+        match="ground truth references missing evidence IDs",
     ):
         load_scenario(directory)

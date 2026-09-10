@@ -2,7 +2,6 @@ import json
 import re
 from json import JSONDecodeError
 from pathlib import Path
-from typing import TypeVar
 
 import yaml
 from pydantic import AwareDatetime, BaseModel, Field, ValidationError
@@ -16,8 +15,6 @@ from incidentlens.models import (
     SourceLocator,
     SourceType,
 )
-
-_ModelT = TypeVar("_ModelT", bound=BaseModel)
 
 _REQUIRED_FILES = (
     "manifest.yaml",
@@ -66,6 +63,7 @@ class _ChangeRecord(FrozenModel):
     environment: str = Field(min_length=1)
     summary: str = Field(min_length=1)
     details: str = Field(min_length=1)
+
 
 def _read_lines(path: Path) -> list[str]:
     try:
@@ -128,6 +126,7 @@ def _parse_logs(path: Path, incident_id: str) -> tuple[EvidenceChunk, ...]:
         )
 
     return tuple(chunks)
+
 
 def _parse_changes(path: Path, incident_id: str) -> tuple[EvidenceChunk, ...]:
     chunks: list[EvidenceChunk] = []
@@ -279,6 +278,7 @@ def _parse_runbook(
 
     return tuple(chunks)
 
+
 def _load_yaml[ModelT: BaseModel](path: Path, model_type: type[ModelT]) -> ModelT:
     try:
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -297,6 +297,47 @@ def _load_yaml[ModelT: BaseModel](path: Path, model_type: type[ModelT]) -> Model
             str(exc),
             filename=path.name,
         ) from exc
+
+
+def _validate_unique_evidence_ids(
+    directory: Path,
+    evidence: tuple[EvidenceChunk, ...],
+) -> None:
+    seen: set[str] = set()
+
+    for chunk in evidence:
+        if chunk.evidence_id in seen:
+            raise ScenarioLoadError(
+                directory,
+                f"duplicate evidence ID: {chunk.evidence_id}"
+            )
+
+        seen.add(chunk.evidence_id)
+
+
+def _validate_ground_truth_evidence_ids(
+    directory: Path,
+    manifest: ScenarioManifest,
+    evidence: tuple[EvidenceChunk, ...],
+) -> None:
+    available_ids = {chunk.evidence_id for chunk in evidence}
+
+    referenced_ids = {
+        *manifest.ground_truth.relevant_evidence_ids,
+        *manifest.ground_truth.distractor_evidence_ids,
+    }
+
+    missing_ids = sorted(referenced_ids - available_ids)
+
+    if missing_ids:
+        raise ScenarioLoadError(
+            directory,
+            (
+                "ground truth references missing evidence IDs: "
+                f"{', '.join(missing_ids)}"
+            ),
+            filename="manifest.yaml",
+        )
 
 
 def load_scenario(directory: Path) -> LoadedScenario:
@@ -330,6 +371,9 @@ def load_scenario(directory: Path) -> LoadedScenario:
         *_parse_changes(directory / "changes.jsonl", incident_id),
         *_parse_runbook(directory / "runbook.md", incident_id),
     )
+
+    _validate_unique_evidence_ids(directory, evidence)
+    _validate_ground_truth_evidence_ids(directory, manifest, evidence)
 
     return LoadedScenario(
         directory=directory,
