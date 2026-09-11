@@ -340,6 +340,74 @@ def _validate_ground_truth_evidence_ids(
         )
 
 
+def _validate_ground_truth_evidence_overlap(
+    directory: Path,
+    manifest: ScenarioManifest,
+) -> None:
+    relevant_ids = set(manifest.ground_truth.relevant_evidence_ids)
+    distractor_ids = set(manifest.ground_truth.distractor_evidence_ids)
+
+    overlapping_ids = relevant_ids & distractor_ids
+
+    if overlapping_ids:
+        raise ScenarioLoadError(
+            directory,
+            (
+                "relevant and distractor evidence IDs overlap: "
+                f"{', '.join(sorted(overlapping_ids))}"
+            ),
+            filename="manifest.yaml",
+        )
+
+
+def _validate_question_evidence_ids(
+    directory: Path,
+    questions: ScenarioQuestionSet,
+    evidence: tuple[EvidenceChunk, ...],
+) -> None:
+    available_ids = {chunk.evidence_id for chunk in evidence}
+
+    for question in questions.questions:
+        missing_ids = sorted(
+            set(question.expected_evidence_ids) - available_ids
+        )
+
+        if missing_ids:
+            raise ScenarioLoadError(
+                directory,
+                (
+                    f"question {question.question_id} references missing "
+                    f"evidence IDs: {', '.join(missing_ids)}"
+                ),
+                filename="questions.yaml",
+            )
+
+
+def _validate_answerable_question_references_relevant_evidence(
+    directory: Path,
+    manifest: ScenarioManifest,
+    questions: ScenarioQuestionSet,
+) -> None:
+    relevant_ids = set(manifest.ground_truth.relevant_evidence_ids)
+
+    for question in questions.questions:
+        if not question.should_abstain:
+            missing_ids = sorted(
+                set(question.expected_evidence_ids) - relevant_ids
+            )
+
+            if missing_ids:
+                raise ScenarioLoadError(
+                    directory,
+                    (
+                        f"answerable question {question.question_id} "
+                        "references non-relevant evidence IDs: "
+                        f"{', '.join(missing_ids)}"
+                    ),
+                    filename="questions.yaml",
+                )
+
+
 def load_scenario(directory: Path) -> LoadedScenario:
     if not directory.is_dir():
         raise ScenarioLoadError(
@@ -374,6 +442,9 @@ def load_scenario(directory: Path) -> LoadedScenario:
 
     _validate_unique_evidence_ids(directory, evidence)
     _validate_ground_truth_evidence_ids(directory, manifest, evidence)
+    _validate_ground_truth_evidence_overlap(directory, manifest)
+    _validate_question_evidence_ids(directory, questions, evidence)
+    _validate_answerable_question_references_relevant_evidence(directory, manifest, questions)
 
     return LoadedScenario(
         directory=directory,

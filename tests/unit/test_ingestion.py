@@ -339,3 +339,69 @@ def test_load_scenario_rejects_missing_ground_truth_evidence(
         match="ground truth references missing evidence IDs",
     ):
         load_scenario(directory)
+
+
+def test_load_scenario_rejects_overlapping_ground_truth_evidence(
+    tmp_path: Path,
+) -> None:
+    directory = tmp_path / "payment-retry-storm"
+    _write_minimal_scenario(directory)
+
+    manifest_path = directory / "manifest.yaml"
+    manifest = manifest_path.read_text(encoding="utf-8")
+    updated_manifest = manifest.replace(
+        "payment-retry-storm:change:harmless-deploy",
+        "payment-retry-storm:log:retry-attempt-001",
+    )
+    manifest_path.write_text(updated_manifest, encoding="utf-8")
+
+    with pytest.raises(
+        ScenarioLoadError,
+        match="relevant and distractor evidence IDs overlap",
+    ):
+        load_scenario(directory)
+
+
+def test_load_scenario_rejects_missing_question_evidence(
+    tmp_path: Path,
+) -> None:
+    directory = tmp_path / "payment-retry-storm"
+    _write_minimal_scenario(directory)
+
+    questions_path = directory / "questions.yaml"
+    questions = questions_path.read_text(encoding="utf-8")
+    updated_questions = questions.replace(
+        "payment-retry-storm:log:retry-attempt-001",
+        "payment-retry-storm:log:missing-question-evidence",
+    )
+    questions_path.write_text(updated_questions, encoding="utf-8")
+
+    with pytest.raises(
+        ScenarioLoadError,
+        match="questions.yaml: question root-cause references missing evidence IDs",
+    ):
+        load_scenario(directory)
+
+
+def test_load_scenario_rejects_answerable_question_using_distractor_evidence(
+    tmp_path: Path,
+) -> None:
+    directory = tmp_path / "payment-retry-storm"
+    _write_minimal_scenario(directory)
+
+    questions_path = directory / "questions.yaml"
+    questions = questions_path.read_text(encoding="utf-8")
+    updated_questions = questions.replace(
+        "payment-retry-storm:log:retry-attempt-001",
+        "payment-retry-storm:change:harmless-deploy",
+    )
+    questions_path.write_text(updated_questions, encoding="utf-8")
+
+    with pytest.raises(
+        ScenarioLoadError,
+        match=(
+            "answerable question root-cause references "
+            "non-relevant evidence IDs"
+        ),
+    ):
+        load_scenario(directory)
