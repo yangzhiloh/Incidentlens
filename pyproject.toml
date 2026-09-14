@@ -8,18 +8,31 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.16.5",
+    "asyncpg>=0.30.0",
     "fastembed>=0.8.0",
+    "fastapi>=0.116.1",
     "httpx>=0.28.1",
+    "langgraph>=0.6.6",
+    "opentelemetry-api>=1.37.0",
+    "opentelemetry-sdk>=1.37.0",
+    "pgvector>=0.4.1",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.15.0",
     "pyyaml>=6.0.3",
     "qdrant-client>=1.19.0",
+    "pypdf>=6.0.0",
+    "python-multipart>=0.0.20",
+    "sentence-transformers>=5.1.0",
+    "sqlalchemy>=2.0.43",
     "structlog>=26.1.0",
     "typer>=0.27.1",
+    "uvicorn>=0.35.0",
 ]
 
 [project.scripts]
 incidentlens = "incidentlens.cli:app"
+opportunitylens = "opportunitylens.cli:app"
 
 [build-system]
 requires = ["uv_build>=0.12.6,<0.13.0"]
@@ -27,9 +40,12 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "asgi-lifespan>=2.1.0",
     "mypy>=2.3.1",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
+    "pytest-asyncio>=1.2.0",
+    "respx>=0.22.0",
     "ruff>=0.16.5",
     "types-pyyaml>=6.0.12.20260815",
 ]
@@ -43,7 +59,7 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "B", "UP", "SIM"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["incidentlens", "scripts"]
+known-first-party = ["incidentlens", "opportunitylens", "scripts"]
 
 [tool.mypy]
 python_version = "3.12"
