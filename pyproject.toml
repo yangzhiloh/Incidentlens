@@ -42,6 +42,9 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["incidentlens", "scripts"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true
@@ -50,6 +53,7 @@ show_error_codes = true
 
 [tool.pytest.ini_options]
 addopts = ["-ra", "--strict-config", "--strict-markers"]
+pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
     "model: downloads and runs the configured local embedding model",
