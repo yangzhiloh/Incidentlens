@@ -214,6 +214,8 @@ def test_scenario_manifest_rejects_invalid_schema_version() -> None:
     with pytest.raises(ValidationError):
         ScenarioManifest(
             schema_version=0,  # Invalid schema version
+            scenario_version="1.0.0",
+            is_synthetic=True,
             incident_definition=incident_definition,
             ground_truth=ground_truth,
         )
@@ -266,6 +268,8 @@ def test_loaded_scenario_groups_validated_components(tmp_path: Path) -> None:
 
     manifest = ScenarioManifest(
         schema_version=1,
+        scenario_version="1.0.0",
+        is_synthetic=True,
         incident_definition=incident_definition,
         ground_truth=ground_truth,
     )
@@ -304,3 +308,58 @@ def test_loaded_scenario_groups_validated_components(tmp_path: Path) -> None:
     assert scenario.directory == tmp_path
     assert scenario.manifest.incident_definition.incident_id == "incident-1"
     assert scenario.evidence[0].evidence_id == "incident-1:log:log-1"
+
+
+def test_scenario_manifest_tracks_content_version_and_origin() -> None:
+    incident_definition = IncidentDefinition(
+        incident_id="payment-retry-storm",
+        title="Payment retry storm",
+        description="Payment requests repeatedly failed.",
+        start_time=datetime(2026, 8, 15, 9, 0, tzinfo=UTC),
+        end_time=datetime(2026, 8, 15, 10, 0, tzinfo=UTC),
+        services=("payment-service",),
+    )
+    ground_truth = GroundTruth(
+        root_cause="An unsafe retry configuration amplified gateway failures.",
+        relevant_evidence_ids=("payment-retry-storm:log:retry-attempt-001",),
+        expected_mitigation="Restore bounded exponential backoff.",
+    )
+
+    manifest = ScenarioManifest(
+        schema_version=1,
+        scenario_version="1.0.0",
+        is_synthetic=True,
+        incident_definition=incident_definition,
+        ground_truth=ground_truth,
+    )
+
+    assert manifest.scenario_version == "1.0.0"
+    assert manifest.is_synthetic is True
+
+
+def test_evidence_chunk_rejects_naive_timestamp() -> None:
+    with pytest.raises(ValidationError):
+        EvidenceChunk(
+            evidence_id="incident-1:log:log-1",
+            incident_id="incident-1",
+            source_type=SourceType.LOG,
+            timestamp=datetime(2026, 8, 15, 9, 15),
+            text="Payment gateway returned 503.",
+            locator=SourceLocator(
+                path="logs.jsonl",
+                line_start=1,
+                line_end=1,
+            ),
+        )
+
+
+def test_incident_definition_rejects_naive_timestamps() -> None:
+    with pytest.raises(ValidationError):
+        IncidentDefinition(
+            incident_id="incident-1",
+            title="Payment retry storm",
+            description="Payment requests repeatedly failed.",
+            start_time=datetime(2026, 8, 15, 9, 0),
+            end_time=datetime(2026, 8, 15, 10, 0),
+            services=("payment-service",),
+        )
