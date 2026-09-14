@@ -21,6 +21,7 @@ wheels/
 .coverage
 htmlcov/
 .test-tmp/
+tmp/
 
 # Local runtime state
 var/
