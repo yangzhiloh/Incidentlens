@@ -13,8 +13,8 @@
 ## Global Constraints
 
 1. Work directly in the saved checkout after a read-only preflight, then create and use the normal branch `feature/opportunitylens-sg-mvp` from the latest `feature/milestone-2-scenario-data` commit. Do not create or use a Codex worktree. Do not reset, clean, or overwrite the untracked `scenarios/` directory or the empty `tmp/` directory.
-2. Restore only the approved spec path from commit `426e8e4`. Do not cherry-pick that commit because it also contains older edits to existing incident files.
-3. Keep the current `src/incidentlens/`, `tests/unit/test_*`, and untracked user files intact. Build the pivot under `src/opportunitylens/` and `web/`. Removal or archival of the incident prototype requires a later explicit decision.
+2. The approved specification was restored from commit `426e8e4`. That historical setup step is complete and must not be repeated.
+3. The legacy prototype is retired from active source, tests, commands, dependencies, and product documentation. Git history and historical branches remain the recovery path.
 4. The MVP is local-first, single-user, and read-only with respect to external hiring systems. It never applies for a job, scrapes an authenticated page, or bypasses bot protection.
 5. Select exactly two initial ATS adapter types from a read-only audit of at least 30 verified employers with Singapore operations. Do not select adapters from intuition.
 6. Use the authoritative job identity `(provider, board_identifier, provider_job_identifier)`. A normalized application URL is only a fallback deduplication signal.
@@ -40,7 +40,7 @@
 The audit performed before writing this plan found:
 
 1. `HEAD` is `06758c4147325d5ea415d37a32c28061cfe9177f` on `feature/milestone-2-scenario-data`.
-2. The saved checkout tracks a compact Python incident-analysis prototype with strict Pydantic models, Typer, Pytest, Ruff, and strict mypy.
+2. The saved checkout contains the OpportunityLens foundation and reproducible source-audit workflow with Typer, Pydantic, Structlog, Pytest, Ruff, and strict mypy.
 3. `scenarios/` is an untracked user directory and `tmp/` is an empty ignored temporary directory. This plan does not modify either path.
 4. The approved design branch points to `426e8e4`, whose merge base with the current branch is `b1db09d`. The approved commit contains the new spec plus older changes to several existing files, so it is a reference source, not a safe whole-commit integration.
 5. No additional `AGENTS.md` file is present inside the repository. The task-level `AGENTS.md` instructions supplied by the user apply.
@@ -82,7 +82,7 @@ git restore --source=426e8e4c88726824ee4e79e334d30841a5bea123 -- docs/superpower
 git diff -- docs/superpowers/specs/2026-09-14-opportunitylens-sg-design.md
 ```
 
-Expected: the diff contains one newly restored design document and no changes to existing incident source, tests, or `scenarios/`.
+Expected: the completed foundation diff contains one newly restored design document and preserves all pre-cleanup user files and `scenarios/`.
 
 - [ ] **Step 4: Repair or replace the broken local uv launcher**
 
@@ -394,7 +394,7 @@ Expected: imports fail for `opportunitylens`.
 
 - [ ] **Step 3: Add focused runtime and development dependencies**
 
-Add runtime dependencies for `alembic`, `asyncpg`, `fastapi`, `langgraph`, `opentelemetry-api`, `opentelemetry-sdk`, `pgvector`, `pypdf`, `python-multipart`, `sentence-transformers`, `sqlalchemy`, and `uvicorn`. Add development dependencies for `asgi-lifespan`, `pytest-asyncio`, and `respx`. Retain the current quality tools and existing incident dependencies so inherited tests remain runnable.
+Add runtime dependencies for `alembic`, `asyncpg`, `fastapi`, `langgraph`, `opentelemetry-api`, `opentelemetry-sdk`, `pgvector`, `pypdf`, `python-multipart`, `sentence-transformers`, `sqlalchemy`, and `uvicorn`. Add development dependencies for `asgi-lifespan`, `pytest-asyncio`, and `respx`. Retain all dependencies required by the approved OpportunityLens architecture. Do not reintroduce dependencies used only by the retired prototype.
 
 Run:
 
@@ -425,15 +425,14 @@ analysis_limit = 10
 
 Redact structured-log keys matching `resume_text`, `email`, `phone`, `authorization`, `cookie`, and `token` before rendering.
 
-- [ ] **Step 5: Add the new console entry point without removing the old one**
+- [ ] **Step 5: Expose the OpportunityLens console entry point**
 
 ```toml
 [project.scripts]
-incidentlens = "incidentlens.cli:app"
 opportunitylens = "opportunitylens.cli:app"
 ```
 
-This preserves the current user work while making the pivot executable.
+This makes the OpportunityLens package executable through its own command.
 
 - [ ] **Step 6: Verify the foundation**
 
@@ -952,7 +951,7 @@ git commit -m "feat: ingest jobs idempotently with provenance"
 - [ ] Repeating a fixture creates no duplicate canonical jobs.
 - [ ] Every fetch appends raw snapshots and observations with content hashes.
 - [ ] One failed source cannot discard successful sources, and the run reports `completed_with_errors`.
-- [ ] The inherited incident tests still pass and no saved-checkout user files have changed.
+- [ ] The OpportunityLens tests pass and no saved-checkout user files have changed.
 
 Run:
 
@@ -2706,7 +2705,7 @@ Never cut:
 | LLM output overstates evidence | Citation or contradiction validation fails | Allow one repair, then abstain. Never surface unvalidated generated claims. |
 | Resume content leaks to telemetry | Test exporter contains raw text or contact keys | Fail CI on redaction tests, use identifier-only spans and logs, keep upload storage nonpublic, and demonstrate with synthetic data. |
 | Metrics become marketing claims | README number has no JSON pointer | Fail `scripts/verify_measurements.py`, remove the statement, or regenerate the measured artifact. |
-| Current incident work is lost during pivot | Saved checkout status changes or legacy tests disappear | Create the approved normal feature branch in the saved checkout, retain `src/incidentlens` and its tests, avoid cherry-picking the divergent design commit, preserve untracked user paths, and request approval before later archival. |
+| Legacy files return during later work | Retired runtime names or paths reappear in active files | Use Git history only as reference, never copy retired runtime files into active paths, and preserve untracked user paths. |
 
 ## Final Resume-Ready Definition of Done
 
@@ -2789,7 +2788,7 @@ Each commit must pass its focused tests before creation. At each weekly gate, ru
 5. **Workload:** Weekly estimates are 32, 28 plus buffer, 32, and 34 focused hours. The scope-cut triggers prevent polish, tracking breadth, extra model sweeps, or dataset growth from consuming core verification time.
 6. **Evidence and safety:** Append-only snapshots, safe incomplete-run behavior, evidence resolution, unknown eligibility, private-data redaction, bounded graph behavior, and all three graceful fallbacks have both implementation and test steps.
 7. **Metric integrity:** The plan never supplies an impact result. It defines how actual counts and scores are generated, traced to raw JSON, and checked before appearing in documentation or resume bullets.
-8. **Repository safety:** The plan preserves current tracked incident code and untracked user paths, creates the approved normal feature branch in the saved checkout, and restores only the approved spec without using a Codex worktree.
+8. **Repository safety:** The plan preserves untracked user paths and source-audit evidence, uses the approved normal feature branches in the saved checkout, and does not use a Codex worktree.
 
 Plan complete and saved to `docs/superpowers/plans/2026-09-14-opportunitylens-sg-mvp.md`. Review and approve this plan before implementation starts. After approval, use one of these execution modes:
 
