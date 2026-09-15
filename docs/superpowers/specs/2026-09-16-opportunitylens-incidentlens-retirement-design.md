@@ -96,8 +96,8 @@ commit.
 7. Run Ruff, strict mypy, `uv lock --check`, and `opportunitylens version`.
 8. Search tracked product code, tests, runtime configuration, `README.md`, and the active
    implementation plan for case-insensitive `incidentlens` references. The search must return no
-   matches. This retirement decision record, Git history, and historical branch contents are
-   excluded from the check.
+   matches. This retirement decision record, its implementation plan, Git history, and historical
+   branch contents are excluded from the check.
 9. Review the complete deletion and modification diff before committing.
 
 ## Verification and Acceptance Criteria
@@ -106,15 +106,16 @@ The cleanup is complete only when:
 
 1. `git ls-files` contains no `src/incidentlens`, IncidentLens unit tests, or obsolete IncidentLens
    design paths.
-2. Tracked product code, tests, runtime configuration, `README.md`, and the active implementation
-   plan contain no case-insensitive `incidentlens` references. This retirement decision record is
-   retained as historical rationale.
+2. Tracked product code, tests, runtime configuration, `README.md`, and the active OpportunityLens
+   MVP plan contain no case-insensitive `incidentlens` references. This retirement decision record
+   and its implementation plan are retained as historical rationale.
 3. `pyproject.toml` names the project `opportunitylens` and exposes only the OpportunityLens console
    entry point.
 4. The dependency lock no longer includes FastEmbed or Qdrant Client as direct project
    dependencies.
 5. The remaining tests pass with a writable temporary directory.
-6. Ruff and strict mypy report no issues for the remaining source, tests, and scripts.
+6. Ruff reports no issues for the remaining source, tests, and scripts. Strict mypy reports no
+   issues for `src` and `scripts`, matching the established project verification scope.
 7. `uv lock --check` succeeds.
 8. `opportunitylens version` prints the expected product name and version.
 9. The diff contains no changes to Git history, historical branches, the private `.env` file, or

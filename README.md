@@ -1,103 +1,61 @@
-# IncidentLens
+# OpportunityLens SG
 
-IncidentLens is a learning-focused AI engineering project for investigating cloud reliability incidents using evidence-grounded retrieval-augmented generation and bounded agentic workflows.
-
-The system is being designed to retrieve operational evidence from logs, runbooks, deployment events, metrics, and traces. It will generate incident reports where every important conclusion links back to inspectable evidence.
+OpportunityLens is a local-first portfolio project for evidence-grounded Singapore internship intelligence. It is designed to collect public employer career data, preserve source provenance, and help a candidate compare opportunities without automating job applications.
 
 ## Why This Project
 
-Incident investigation requires engineers to search across multiple disconnected sources, reconstruct timelines, compare possible causes, and avoid drawing conclusions from incomplete evidence.
+Internship information is scattered across employer career sites and applicant tracking systems. Eligibility rules, role status, and evidence quality are often inconsistent or unclear.
 
-IncidentLens explores how modern RAG and controlled AI agents can support that process while remaining:
+OpportunityLens is being built around four principles:
 
-- Evidence-grounded
-- Reproducible
-- Measurable
-- Read-only
-- Capable of abstaining when evidence is insufficient
-
-The planned standout feature is an Incident Replay Lab that runs investigations against incidents with known ground truth. This makes it possible to compare retrieval strategies, measure root-cause accuracy, and detect regressions.
+- Keep every material claim linked to inspectable source evidence.
+- Represent eligibility as eligible, ineligible, or unknown instead of forcing certainty.
+- Make uncertainty and stale data visible.
+- Keep the system read-only. It does not submit applications or act on a candidate's behalf.
 
 ## Current Status
 
-Current phase: **Milestone 1, scenario ingestion in progress**
+The OpportunityLens foundation is implemented:
 
-Currently implemented:
+- Typed environment settings with an `OPPORTUNITYLENS_` prefix.
+- A Typer command-line entry point with a version command.
+- Structured logging configuration.
+- A reproducible source-audit workflow for Singapore employer career systems.
+- Tests for the implemented foundation and audit tooling.
 
-- Python package scaffold
-- Dependency and lockfile configuration
-- Development tool configuration
-- Environment variable template
-- Typed local configuration and command-line entry point
-- Immutable incident, evidence, citation, query, answer, and evaluation models
-- Citation and abstention validation contracts
-- Versioned scenario manifests and evaluation question sets
-- Source-aware parsing for logs, deployment changes, and runbook sections
-- Deterministic unit tests for the implemented foundation
+The domain and evidence contracts, persistence layer, provider adapters, ranking pipeline, evaluation harness, API, and web interface are planned but not implemented yet.
 
-Not implemented yet:
+The repository does not claim measured product performance before those evaluations exist. Current source-audit findings are documented separately from future product metrics.
 
-- Cross-file scenario validation
-- The first committed payment-retry-storm scenario package
-- Qdrant indexing
-- Dense evidence retrieval with mandatory incident filtering
-- Ollama generation
-- Citation validation
-- Incident Replay Lab and retrieval evaluation
-- Bounded LangGraph investigation
-- API or web interface
-- Docker deployment
-- Live OpenTelemetry Demo integration
-- Optional AWS infrastructure
+## Technology Direction
 
-The project is being built progressively so that each milestone produces a working and measurable result.
-
-## Planned Milestones
-
-| Milestone | Focus | Intended Result |
-|---|---|---|
-| 1 | Evidence search baseline | Investigate one prerecorded incident using dense retrieval and cited generation |
-| 2 | Modern RAG | Add hybrid retrieval, metadata filtering, reranking, and evaluation |
-| 3 | Agentic investigation | Build a bounded LangGraph workflow with hypotheses, retries, and abstention |
-| 4 | Resume-ready product | Add FastAPI, React, Docker, CI/CD, the Incident Replay Lab, and one live OpenTelemetry incident |
-| 5 | Optional cloud extension | Add an on-demand AWS deployment after the local portfolio version is complete |
-
-Milestone 4 is the portfolio finish line. Milestone 5 is optional and is not required for the project to be resume ready.
-
-## Technology Stack
-
-Current foundation:
-
-- Python 3.12
-- uv
-- Pydantic
-- Pydantic Settings
-- Qdrant Client
-- FastEmbed
-- HTTPX
-- PyYAML
-- Typer
-- Structlog
-- Ruff
-- Mypy
-- Pytest
-
-Planned core additions include LangGraph, FastAPI, React, Docker, GitHub Actions, and OpenTelemetry. AWS and Terraform remain optional extensions.
-
-## Prerequisites
-
-Install:
-
-1. Python 3.12
-2. uv
-3. Git
-4. Ollama, required later for local generation
-
-Ollama does not need a downloaded model during the initial project setup.
+The approved architecture uses Python 3.12, PostgreSQL with pgvector, SQLAlchemy, FastAPI, LangGraph, Sentence Transformers, OpenTelemetry, PyYAML, Typer, Structlog, Ruff, mypy, and Pytest. A web interface is planned for a later milestone.
 
 ## Local Setup
 
-Install the project and its development dependencies:
+Install Python 3.12, uv, and Git. Then synchronize the project:
 
 ```powershell
 uv sync
+```
+
+Copy `.env.example` to `.env` and adjust local values when a milestone requires them. The current version command does not require a running database:
+
+```powershell
+uv run opportunitylens version
+```
+
+Run the deterministic test suite:
+
+```powershell
+uv run pytest -q
+```
+
+## Project Documentation
+
+- Product design: `docs/superpowers/specs/2026-09-14-opportunitylens-sg-design.md`
+- MVP implementation plan: `docs/superpowers/plans/2026-09-14-opportunitylens-sg-mvp.md`
+- Source-audit methodology: `docs/source-audit/methodology.md`
+- Source-audit findings: `docs/source-audit/findings.md`
+
+Work proceeds in small milestone branches so each concept can be implemented, tested, reviewed, and understood before the next layer is added.

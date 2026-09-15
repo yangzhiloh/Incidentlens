@@ -1,7 +1,7 @@
 [project]
-name = "incidentlens"
+name = "opportunitylens"
 version = "0.1.0"
-description = "Evidence-grounded incident investigation using modern RAG"
+description = "Evidence-grounded Singapore internship intelligence"
 readme = "README.md"
 authors = [
     { name = "Loh Yang Zhi", email = "yangzhiloh@gmail.com" }
@@ -10,7 +10,6 @@ requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.16.5",
     "asyncpg>=0.30.0",
-    "fastembed>=0.8.0",
     "fastapi>=0.116.1",
     "httpx>=0.28.1",
     "langgraph>=0.6.6",
@@ -20,7 +19,6 @@ dependencies = [
     "pydantic>=2.13.4",
     "pydantic-settings>=2.15.0",
     "pyyaml>=6.0.3",
-    "qdrant-client>=1.19.0",
     "pypdf>=6.0.0",
     "python-multipart>=0.0.20",
     "sentence-transformers>=5.1.0",
@@ -31,7 +29,6 @@ dependencies = [
 ]
 
 [project.scripts]
-incidentlens = "incidentlens.cli:app"
 opportunitylens = "opportunitylens.cli:app"
 
 [build-system]
@@ -59,7 +56,7 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "B", "UP", "SIM"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["incidentlens", "opportunitylens", "scripts"]
+known-first-party = ["opportunitylens", "scripts"]
 
 [tool.mypy]
 python_version = "3.12"
